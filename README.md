@@ -18,8 +18,11 @@ main.py  ->  scraper.scrape(url)      # fetch + parse HTML -> (title, text)
 ```
 
 - **`src/main.py`** – entry point; handles user input and output.
-- **`src/scraper.py`** – `scrape(url)` uses `requests` to fetch the page and
-  `BeautifulSoup` to pull out the `<title>` and all text. Raises/handles HTTP errors.
+- **`src/scraper.py`** – `scrape(url)` first tries `scrape_with_requests()`
+  (`requests` + `BeautifulSoup`, fast but only sees static HTML). If the page
+  doesn't yield enough text — e.g. it's rendered client-side with JavaScript —
+  it falls back to `scrape_with_selenium()`, which drives a real Chrome browser
+  to let the page load before extracting the `<title>` and text.
 - **`src/summarizer.py`** – `summarize(title, text)` builds a prompt and calls the
   chat-completions API, returning the model's summary.
 
@@ -29,6 +32,7 @@ main.py  ->  scraper.scrape(url)      # fetch + parse HTML -> (title, text)
 | ---------------- | ------------------------------------------------------------- |
 | `requests`       | HTTP GET to download the article HTML.                        |
 | `beautifulsoup4` | Parse the HTML and extract the title and text content.        |
+| `selenium`       | Drives a real Chrome browser to scrape JavaScript-rendered pages. |
 | `openai`         | Client for the chat-completions API (pointed at Groq's endpoint). |
 | `python-dotenv`  | Load the API key from a local `.env` file.                    |
 
@@ -40,8 +44,11 @@ The summarizer talks to Groq's OpenAI-compatible API
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install requests beautifulsoup4 openai python-dotenv
+pip install requests beautifulsoup4 selenium openai python-dotenv
 ```
+
+The Selenium fallback requires Google Chrome to be installed locally (Selenium
+Manager will fetch a matching `chromedriver` automatically on first run).
 
 Create a `.env` file in the project root:
 

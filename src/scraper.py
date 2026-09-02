@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 
-def scrape(url):
+def scrape_with_requests(url):
     """
     Scrapes the content of the given URL ( static page ) and returns the HTML content.
 
@@ -36,11 +37,14 @@ def scrape_with_selenium(url):
     print(f"Scraping URL: {url}")
 
     driver = webdriver.Chrome()
+    driver.set_page_load_timeout(30)
+    driver.implicitly_wait(10)
 
     try:
-
-        driver.get(url)
-        driver.implicitly_wait(10)
+        try:
+            driver.get(url)
+        except TimeoutException:
+            print(f"Timed out loading {url}, using whatever content loaded so far")
 
         html = driver.page_source
         soup = BeautifulSoup(html, "html.parser")
@@ -52,3 +56,22 @@ def scrape_with_selenium(url):
 
     finally:
         driver.quit() # Quit the driver after scraping to free up resources
+
+
+def has_useful_content(text):
+    return len(text.split()) > 100  
+
+def scrape(url):
+    try:
+        title, text = scrape_with_requests(url)
+
+        if has_useful_content(text):
+            print("Using requests as scraping method")
+            return title, text
+    
+    except requests.RequestException:
+        pass
+
+    # fall back to selenium
+    print("use selenium as the scraping strategy")
+    return scrape_with_selenium(url)
